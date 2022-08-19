@@ -111,31 +111,33 @@ async fn handle_doc_query(room: Joined, content: &str) -> Result<()> {
         serde_json::from_str::<DocResponse>(&json_str.text().await.oops("Failed to get body")?)
             .oops("Failed to deserialize response")?;
 
+    let uri = format!("https://lep.duckdns.org/app/jassbot/doc/{}", encode(content));
+
     let annotations = query
         .annotations
         .into_iter()
         .filter(|an| an.name != "return-type")
         .filter(|an| an.name != "source-code")
         .filter(|an| an.name != "source-file")
-        .map(|an| format!("{}: {}", an.name, an.value))
+        .map(|an| format!("{}: {}", an.name, an.value.trim()))
         .collect::<Vec<_>>();
 
     let parameters = query
         .parameters
         .into_iter()
         .filter(|pa| pa.doc.is_some())
-        .map(|pa| format!("{} parameter: {}", pa.name, pa.doc.unwrap()))
+        .map(|pa| format!("* {} parameter: {}", pa.name, pa.doc.unwrap().trim()))
         .collect::<Vec<_>>();
 
     if annotations.len() + parameters.len() == 0 {
         return Ok(());
     }
 
-    let content = annotations.join("\n") + &parameters.join("\n");
+    let content = uri + "\n \n" + &annotations.join("\n \n") + "\n \n" + &parameters.join("\n");
 
     println!("sending");
 
-    room.send(RoomMessageEventContent::text_plain(content), None)
+    room.send(RoomMessageEventContent::text_markdown(content), None)
         .await
         .unwrap();
 
