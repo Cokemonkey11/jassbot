@@ -61,7 +61,6 @@ fn parse(input: &str) -> Result<Action> {
         _ => None.oops("First word is not a trigger"),
     };
 
-    println!("{:?}", res);
     res
 }
 
@@ -151,7 +150,6 @@ async fn on_room_message(event: OriginalSyncRoomMessageEvent, room: Room) -> Res
             MessageType::Text(TextMessageEventContent { body, .. }) => body,
             _ => return Ok(()),
         };
-        println!("{}", msg_body);
 
         match parse(&msg_body) {
             Ok(Action::NativeQuery(query)) => handle_native_query(room, query).await?,
