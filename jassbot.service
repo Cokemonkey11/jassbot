@@ -1,0 +1,7 @@
+[Unit]
+Description=jassbot is the jassdoc bot for matrix.org
+Wants=sshd.service
+
+[Service]
+ExecStart=/usr/sbin/jassbot
+RestartSec=5
