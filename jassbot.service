@@ -5,3 +5,4 @@ Wants=sshd.service
 [Service]
 ExecStart=/usr/sbin/jassbot
 RestartSec=5
+Restart=always
