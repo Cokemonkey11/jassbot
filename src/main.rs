@@ -1,3 +1,5 @@
+pub mod jassdoc;
+
 use matrix_sdk::{
     config::SyncSettings,
     room::{Joined, Room},
@@ -11,43 +13,16 @@ use matrix_sdk::{
     Client,
 };
 use oops::Oops;
-use serde::Deserialize;
 use std::io::Result;
-use urlencoding::encode;
+
+use crate::jassdoc::{
+    jassdoc_doc_response_of, jassdoc_native_response_of, jassdoc_user_doc_uri_of,
+};
 
 #[derive(Debug)]
 enum Action<'a> {
     NativeQuery(&'a str),
     DocQuery(&'a str),
-}
-
-#[derive(Deserialize)]
-struct NativeResponse(String);
-
-#[derive(Deserialize)]
-struct Annotation {
-    name: String,
-    value: String,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize)]
-struct Parameter {
-    doc: Option<String>,
-    name: String,
-
-    #[serde(rename = "type")]
-    type_: String,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize)]
-struct DocResponse {
-    annotations: Vec<Annotation>,
-    commit: String,
-    kind: String,
-    linenumber: String,
-    parameters: Vec<Parameter>,
 }
 
 fn parse(input: &str) -> Result<Action> {
@@ -67,22 +42,12 @@ fn parse(input: &str) -> Result<Action> {
 async fn handle_native_query(room: Joined, content: &str) -> Result<()> {
     println!("querying");
 
-    let json_str = reqwest::get(format!(
-        "https://lep.duckdns.org/app/jassbot/search/api/{}",
-        encode(content)
-    ))
-    .await
-    .oops("Request failed")?;
-
-    let query = serde_json::from_str::<Vec<NativeResponse>>(
-        &json_str.text().await.oops("Failed to get body")?,
-    )
-    .oops("Failed to deserialize response")?;
+    let query = jassdoc_native_response_of(content).await?;
 
     let content = query
+        .results
         .into_iter()
         .take(3)
-        .map(|nr| nr.0)
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -99,18 +64,9 @@ async fn handle_native_query(room: Joined, content: &str) -> Result<()> {
 async fn handle_doc_query(room: Joined, content: &str) -> Result<()> {
     println!("querying");
 
-    let json_str = reqwest::get(format!(
-        "https://lep.duckdns.org/app/jassbot/doc/api/{}",
-        encode(content)
-    ))
-    .await
-    .oops("Request failed")?;
+    let query = jassdoc_doc_response_of(content).await?;
 
-    let query =
-        serde_json::from_str::<DocResponse>(&json_str.text().await.oops("Failed to get body")?)
-            .oops("Failed to deserialize response")?;
-
-    let uri = format!("https://lep.duckdns.org/app/jassbot/doc/{}", encode(content));
+    let uri = jassdoc_user_doc_uri_of(content);
 
     let annotations = query
         .annotations
@@ -162,16 +118,16 @@ async fn on_room_message(event: OriginalSyncRoomMessageEvent, room: Room) -> Res
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let alice = user_id!("@jassbot:matrix.org");
+    let user = user_id!("@jassbot:matrix.org");
     let client = Client::builder()
-        .user_id(alice)
+        .user_id(user)
         .build()
         .await
         .oops("Failed to build client")?;
     let password = std::env::var("PASSWORD").oops("Missing PASSWORD env variable")?;
 
     client
-        .login(alice, &password, None, None)
+        .login(user, &password, None, None)
         .await
         .oops("Failed to login to matrix.org")?;
 
