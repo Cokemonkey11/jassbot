@@ -11,9 +11,7 @@ use matrix_sdk::{
     Client,
 };
 use oops::Oops;
-use reqwest;
 use serde::Deserialize;
-use serde_json;
 use std::io::Result;
 use urlencoding::encode;
 
@@ -32,6 +30,7 @@ struct Annotation {
     value: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct Parameter {
     doc: Option<String>,
@@ -41,6 +40,7 @@ struct Parameter {
     type_: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct DocResponse {
     annotations: Vec<Annotation>,
