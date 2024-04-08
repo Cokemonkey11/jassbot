@@ -43,7 +43,7 @@ pub struct DocResponse {
 
 pub async fn jassdoc_doc_response_of(query: &str) -> std::io::Result<DocResponse> {
     let json_str = reqwest::get(format!(
-        "https://lep.duckdns.org/beta/jassbot/doc/api/{}",
+        "https://lep.duckdns.org/app/jassbot/doc/api/{}",
         encode(query)
     ))
     .await
@@ -55,7 +55,7 @@ pub async fn jassdoc_doc_response_of(query: &str) -> std::io::Result<DocResponse
 
 pub async fn jassdoc_native_response_of(query: &str) -> std::io::Result<NativeResponse> {
     let json_str = reqwest::get(format!(
-        "https://lep.duckdns.org/beta/jassbot/search/api/{}",
+        "https://lep.duckdns.org/app/jassbot/search/api/{}",
         encode(query)
     ))
     .await
@@ -66,7 +66,7 @@ pub async fn jassdoc_native_response_of(query: &str) -> std::io::Result<NativeRe
 }
 
 pub fn jassdoc_user_doc_uri_of(query: &str) -> String {
-    format!("https://lep.duckdns.org/app/jassbot/doc/{}", encode(query))
+    format!("https://lep.duckdns.org/jassbot/doc/{}", encode(query))
 }
 
 #[cfg(test)]
