@@ -1,4 +1,5 @@
 use oops::Oops;
+use reqwest::StatusCode;
 use serde::Deserialize;
 use urlencoding::encode;
 
@@ -15,14 +16,14 @@ pub struct NativeResponse {
     pub results: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Annotation {
     pub name: String,
     pub value: String,
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Parameter {
     pub doc: Option<String>,
     pub name: String,
@@ -32,7 +33,7 @@ pub struct Parameter {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DocResponse {
     pub annotations: Vec<Annotation>,
     pub commit: String,
@@ -49,6 +50,12 @@ pub async fn jassdoc_doc_response_of(query: &str) -> std::io::Result<DocResponse
     .await
     .oops("Request failed")?;
 
+    if json_str.status() == StatusCode::NOT_FOUND {
+        return None.lazy_oops(|| json_str.status().to_string());
+    }
+
+    println!("{:?}", json_str);
+
     serde_json::from_str::<DocResponse>(&json_str.text().await.oops("Failed to get body")?)
         .oops("Failed to deserialize response")
 }
@@ -60,6 +67,10 @@ pub async fn jassdoc_native_response_of(query: &str) -> std::io::Result<NativeRe
     ))
     .await
     .oops("Request failed")?;
+
+    if json_str.status() == StatusCode::NOT_FOUND {
+        return None.lazy_oops(|| json_str.status().to_string());
+    }
 
     serde_json::from_str::<NativeResponse>(&json_str.text().await.oops("Failed to get body")?)
         .oops("Failed to deserialize response")
@@ -90,6 +101,15 @@ mod tests {
             resp.parameters.into_iter().next().oops("test failed")?.name,
             "id"
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_invalid_api_doc() -> std::io::Result<()> {
+        let resp = jassdoc_doc_response_of("Qwerty").await;
+
+        assert!(resp.is_err_and(|x| x.to_string().contains("Not Found")));
 
         Ok(())
     }

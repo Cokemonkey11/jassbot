@@ -13,7 +13,7 @@ use matrix_sdk::{
     Client,
 };
 use oops::Oops;
-use std::io::Result;
+use std::io::{ErrorKind, Result};
 
 use crate::jassdoc::{
     jassdoc_doc_response_of, jassdoc_native_response_of, jassdoc_user_doc_uri_of,
@@ -107,11 +107,22 @@ async fn on_room_message(event: OriginalSyncRoomMessageEvent, room: Room) -> Res
             _ => return Ok(()),
         };
 
-        match parse(&msg_body) {
-            Ok(Action::NativeQuery(query)) => handle_native_query(room, query).await?,
-            Ok(Action::DocQuery(query)) => handle_doc_query(room, query).await?,
+        let res = match parse(&msg_body) {
+            Ok(Action::NativeQuery(query)) => handle_native_query(room.clone(), query).await,
+            Ok(Action::DocQuery(query)) => handle_doc_query(room.clone(), query).await,
             Err(_) => return Ok(()),
         };
+
+        if let Some(err) = res.err() {
+            if err.kind() == ErrorKind::Other && err.to_string().contains("Not Found") {
+                room.send(
+                    RoomMessageEventContent::text_markdown("No results found"),
+                    None,
+                )
+                .await
+                .unwrap();
+            }
+        }
     }
     Ok(())
 }
