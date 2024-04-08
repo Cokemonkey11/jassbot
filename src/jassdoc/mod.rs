@@ -54,8 +54,6 @@ pub async fn jassdoc_doc_response_of(query: &str) -> std::io::Result<DocResponse
         return None.lazy_oops(|| json_str.status().to_string());
     }
 
-    println!("{:?}", json_str);
-
     serde_json::from_str::<DocResponse>(&json_str.text().await.oops("Failed to get body")?)
         .oops("Failed to deserialize response")
 }
